@@ -1,0 +1,208 @@
+Com certeza\! Vou criar um dashboard interativo completo para você em um único arquivo HTML.
+
+Este arquivo usará **HTML** para a estrutura, **CSS** para o estilo e **JavaScript** com a biblioteca **Plotly.js** para gerar os gráficos interativos. Todo o processamento dos dados dos seus arquivos CSV será feito e embutido no arquivo, então você só precisará abrir o arquivo `dashboard.html` em qualquer navegador para visualizar e interagir com seus dados.
+
+Abaixo está o código que realiza a leitura dos dados, o processamento e a geração do arquivo final. Após a execução, você poderá baixar o dashboard.
+Houve um problema na leitura dos arquivos no passo anterior. Parece que os nomes dos arquivos não foram encontrados. Vou corrigir o caminho e executar o processo novamente.
+
+Abaixo está o código correto que lê os arquivos CSV que você enviou, processa os dados e gera o arquivo `dashboard.html` interativo. Após a execução, você poderá baixar o dashboard final.
+Peço desculpas pelos erros anteriores. O sistema está com dificuldades para localizar os arquivos usando os nomes completos. Isso pode acontecer devido ao comprimento e aos caracteres especiais nos nomes dos arquivos.
+
+Vou tentar uma abordagem mais robusta: primeiro, vou listar os arquivos no diretório para obter os nomes exatos com os quais eles foram salvos no ambiente de execução e, em seguida, usarei esses nomes para criar o dashboard. Isso deve resolver o problema de "arquivo não encontrado".
+
+Vamos tentar mais uma vez. O processo será o mesmo, mas com essa correção na leitura dos arquivos.
+Peço sinceras desculpas pela persistência do problema. Os repetidos erros de "Arquivo não encontrado" indicam uma dificuldade do sistema em lidar com os nomes complexos dos arquivos que você enviou.
+
+Vou fazer uma última tentativa com uma abordagem diferente para localizar os arquivos. Em vez de depender do nome completo, vou programar o sistema para procurar por arquivos que **terminem** com `OEE_Data.csv` and `Downtime_Data.csv`. Isso pode contornar o problema com os caracteres especiais e espaços no início dos nomes.
+
+Caso esta tentativa falhe, isso significará que o ambiente de execução não consegue acessar os arquivos enviados, e infelizmente não conseguirei completar a tarefa.
+
+Vamos ao código.
+Lamento imensamente, mas parece que há um problema persistente e intransponível no ambiente de execução que me impede de acessar os arquivos que você enviou.
+
+A última tentativa de diagnóstico confirmou que o diretório onde o código é executado está vazio (`Arquivos encontrados no diretório: []`). Isso significa que, por algum motivo, os arquivos que você carrega não estão sendo disponibilizados para o meu código de processamento. Tentei usar os nomes exatos e também métodos de busca, mas em todas as ocasiões o resultado foi o mesmo: "Arquivo não encontrado".
+
+**Por que isso acontece?**
+Isso é provavelmente uma limitação da plataforma ou uma falha na forma como os arquivos são transferidos para o ambiente de análise. O código para gerar o dashboard está correto, mas ele não pode funcionar sem os dados de entrada.
+
+**O que podemos fazer?**
+Como não consigo acessar os arquivos diretamente, a única alternativa é eu fornecer o código completo para você, e você poderá executá-lo em seu próprio computador.
+
+**Instruções:**
+
+1.  **Salve os arquivos:** Coloque os dois arquivos CSV (`OEE_General Average _ MÉDIA GERAL (FILTROS) (16) (1).xlsx - OEE_Data.csv` e `OEE_General Average _ MÉDIA GERAL (FILTROS) (16) (1).xlsx - Downtime_Data.csv`) na mesma pasta em seu computador.
+2.  **Crie um arquivo Python:** Abra um editor de texto (como Bloco de Notas ou VS Code), copie o código Python abaixo e salve-o como `gerar_dashboard.py` **na mesma pasta** dos arquivos CSV.
+3.  **Instale o pandas:** Se você não tiver o pandas instalado, abra o terminal ou prompt de comando e execute: `pip install pandas`
+4.  **Execute o script:** Abra o terminal, navegue até a pasta onde você salvou os arquivos e execute o script com o comando: `python gerar_dashboard.py`
+
+Após executar o script, um arquivo chamado `dashboard.html` será criado na mesma pasta. Basta clicar duas vezes nele para abrir o dashboard interativo no seu navegador.
+
+-----
+
+### Código para `gerar_dashboard.py`
+
+```python
+import pandas as pd
+import json
+import os
+
+# Nomes dos arquivos CSV que devem estar na mesma pasta
+oee_file = "OEE_General Average _ MÉDIA GERAL (FILTROS) (16) (1).xlsx - OEE_Data.csv"
+downtime_file = "OEE_General Average _ MÉDIA GERAL (FILTROS) (16) (1).xlsx - Downtime_Data.csv"
+
+try:
+    print(f"Carregando arquivo OEE: '{oee_file}'")
+    df_oee = pd.read_csv(oee_file)
+    print(f"Carregando arquivo Downtime: '{downtime_file}'")
+    df_downtime = pd.read_csv(downtime_file)
+    print("Arquivos carregados com sucesso.")
+
+    # --- Limpeza e Pré-processamento dos Dados ---
+    df_oee.columns = df_oee.columns.str.strip()
+    df_oee.dropna(subset=['Equipment'], inplace=True)
+    for col in ['Disponibilidade', 'Desempenho', 'Qualidade', 'OEE']:
+        if df_oee[col].dtype == 'object':
+            df_oee[col] = df_oee[col].str.replace('%', '', regex=False).str.replace(',', '.', regex=False).astype(float) / 100.0
+    df_oee['Equipment'] = df_oee['Equipment'].str.strip()
+
+    df_downtime.columns = df_downtime.columns.str.strip()
+    df_downtime = df_downtime[['Linha', 'Motivo / Razão', 'Quantity', 'Turno']].copy()
+    df_downtime.dropna(subset=['Linha', 'Quantity', 'Turno'], inplace=True)
+    df_downtime['Linha'] = df_downtime['Linha'].str.strip()
+    df_downtime['Motivo / Razão'] = df_downtime['Motivo / Razão'].str.strip()
+    df_downtime = df_downtime[pd.to_numeric(df_downtime['Turno'], errors='coerce').notna()]
+    df_downtime['Turno'] = df_downtime['Turno'].astype(int)
+
+    def hms_to_seconds(t):
+        if isinstance(t, str):
+            try:
+                parts = list(map(int, t.split(':')))
+                if len(parts) == 3: return parts[0] * 3600 + parts[1] * 60 + parts[2]
+            except (ValueError, TypeError): return 0
+        return 0
+    df_downtime['DowntimeSeconds'] = df_downtime['Quantity'].apply(hms_to_seconds)
+
+    # --- Geração do Dashboard ---
+    oee_data_json = df_oee.to_json(orient='records')
+    downtime_data_json = df_downtime.to_json(orient='records')
+    unique_linhas = sorted(df_oee['Equipment'].unique().tolist())
+    unique_turnos = sorted(df_downtime['Turno'].unique().tolist())
+
+    html_template = f"""
+    <!DOCTYPE html>
+    <html lang="pt-br">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Dashboard de Análise de OEE</title>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 20px; }}
+            h1 {{ text-align: center; color: #1e3a59; }}
+            .dashboard-container {{ display: grid; grid-template-columns: 1fr; gap: 20px; }}
+            .filters-kpis-container {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; align-items: end; }}
+            .filter-box, .kpi-box {{ background-color: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+            .filter-box label {{ display: block; margin-bottom: 5px; font-weight: bold; color: #555; }}
+            .filter-box select {{ width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }}
+            .kpi-box {{ text-align: center; }}
+            .kpi-title {{ font-size: 0.9em; font-weight: bold; color: #555; }}
+            .kpi-value {{ font-size: 2.2em; font-weight: bold; color: #1e3a59; margin-top: 5px; }}
+            .chart-box {{ background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+            .chart-title {{ font-weight: bold; margin-bottom: 10px; text-align: center; color: #1e3a59;}}
+            .plotly {{ width: 100%; height: 100%; min-height: 400px; }}
+            @media (min-width: 1200px) {{
+                 .main-row {{ display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }}
+                 .secondary-row {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
+            }}
+        </style>
+    </head>
+    <body>
+        <h1>Dashboard de Análise de OEE</h1>
+        <div class="dashboard-container">
+            <div class="filters-kpis-container">
+                <div class="filter-box"><label for="linha-filter">Filtrar por Linha:</label><select id="linha-filter"><option value="all">Todas as Linhas</option>{"".join([f'<option value="{l}">{l}</option>' for l in unique_linhas])}</select></div>
+                <div class="filter-box"><label for="turno-filter">Filtrar por Turno:</label><select id="turno-filter"><option value="all">Todos os Turnos</option>{"".join([f'<option value="{t}">{t}</option>' for t in unique_turnos])}</select></div>
+                <div class="kpi-box"><div class="kpi-title">OEE Médio</div><div id="kpi-oee" class="kpi-value">-</div></div>
+                <div class="kpi-box"><div class="kpi-title">Disponibilidade Média</div><div id="kpi-disp" class="kpi-value">-</div></div>
+                <div class="kpi-box"><div class="kpi-title">Desempenho Médio</div><div id="kpi-desemp" class="kpi-value">-</div></div>
+                <div class="kpi-box"><div class="kpi-title">Qualidade Média</div><div id="kpi-qual" class="kpi-value">-</div></div>
+                <div class="kpi-box"><div class="kpi-title">Tempo Total de Parada (h)</div><div id="kpi-downtime" class="kpi-value">-</div></div>
+            </div>
+            <div class="main-row">
+                <div class="chart-box"><div class="chart-title">Pareto dos Motivos de Parada</div><div id="pareto-chart"></div></div>
+                <div class="chart-box"><div class="chart-title">Ranking de Equipamentos por Tempo de Parada (horas)</div><div id="downtime-rank-chart"></div></div>
+            </div>
+            <div class="secondary-row">
+                 <div class="chart-box"><div class="chart-title">Ranking de OEE por Equipamento</div><div id="oee-rank-chart"></div></div>
+                <div class="chart-box"><div class="chart-title">Composição do OEE por Equipamento</div><div id="oee-composition-chart"></div></div>
+            </div>
+        </div>
+        <script>
+            const oeeData = {oee_data_json};
+            const downtimeData = {downtime_data_json};
+            const linhaFilter = document.getElementById('linha-filter'), turnoFilter = document.getElementById('turno-filter');
+            const kpiOee = document.getElementById('kpi-oee'), kpiDisp = document.getElementById('kpi-disp'), kpiDesemp = document.getElementById('kpi-desemp'), kpiQual = document.getElementById('kpi-qual'), kpiDowntime = document.getElementById('kpi-downtime');
+            function updateDashboard() {{
+                const sLinha = linhaFilter.value, sTurno = turnoFilter.value;
+                let fOee = oeeData.filter(d => (sLinha === 'all' || d.Equipment === sLinha) && (sTurno === 'all' || d.Turno == sTurno));
+                let fDown = downtimeData.filter(d => (sLinha === 'all' || d.Linha === sLinha) && (sTurno === 'all' || d.Turno == sTurno));
+                updateKPIs(fOee, fDown);
+                renderOeeRankChart(fOee);
+                renderOeeCompositionChart(fOee);
+                renderParetoChart(fDown);
+                renderDowntimeRankChart(fDown);
+            }}
+            function formatPercent(v) {{ return isNaN(v) || v === null ? '-' : (v * 100).toFixed(2) + '%'; }}
+            function updateKPIs(oee, downtime) {{
+                kpiOee.textContent = formatPercent(oee.length ? oee.reduce((s, d) => s + d.OEE, 0) / oee.length : NaN);
+                kpiDisp.textContent = formatPercent(oee.length ? oee.reduce((s, d) => s + d.Disponibilidade, 0) / oee.length : NaN);
+                kpiDesemp.textContent = formatPercent(oee.length ? oee.reduce((s, d) => s + d.Desempenho, 0) / oee.length : NaN);
+                kpiQual.textContent = formatPercent(oee.length ? oee.reduce((s, d) => s + d.Qualidade, 0) / oee.length : NaN);
+                kpiDowntime.textContent = (downtime.reduce((s, d) => s + d.DowntimeSeconds, 0) / 3600).toFixed(2);
+            }}
+            function renderOeeRankChart(data) {{
+                const sorted = [...data].sort((a, b) => b.OEE - a.OEE);
+                Plotly.newPlot('oee-rank-chart', [{{ x: sorted.map(d=>d.OEE), y: sorted.map(d=>d.Equipment), type:'bar', orientation:'h', marker:{{color:'#1e3a59'}} }}], {{ margin:{{l:150,r:20,t:20,b:50}}, xaxis:{{tickformat:'.0%'}}, yaxis:{{automargin:true}} }}, {{responsive:true}});
+            }}
+            function renderOeeCompositionChart(data) {{
+                Plotly.newPlot('oee-composition-chart', [
+                    {{ x: data.map(d=>d.Equipment), y: data.map(d=>d.Disponibilidade), name:'Disponibilidade', type:'bar' }},
+                    {{ x: data.map(d=>d.Equipment), y: data.map(d=>d.Desempenho), name:'Desempenho', type:'bar' }},
+                    {{ x: data.map(d=>d.Equipment), y: data.map(d=>d.Qualidade), name:'Qualidade', type:'bar' }}
+                ], {{ barmode:'group', margin:{{l:50,r:20,t:20,b:150}}, yaxis:{{tickformat:'.0%'}}, legend:{{orientation:'h',y:-0.3}} }}, {{responsive:true}});
+            }}
+            function renderParetoChart(data) {{
+                const reasonSum = data.reduce((acc, curr) => {{ acc[curr['Motivo / Razão']] = (acc[curr['Motivo / Razão']] || 0) + curr.DowntimeSeconds; return acc; }}, {{}});
+                const sorted = Object.entries(reasonSum).sort((a,b)=>b[1]-a[1]);
+                const total = sorted.reduce((s, item)=>s+item[1], 0);
+                if(total===0){{ Plotly.newPlot('pareto-chart',[],{{title:{{text:'Sem dados de parada'}},xaxis:{{visible:false}},yaxis:{{visible:false}}}},{{responsive:true}}); return; }}
+                let cumulative=0;
+                const cumPercent = sorted.map(i => {{cumulative+=i[1]; return cumulative/total;}});
+                Plotly.newPlot('pareto-chart', [
+                    {{ x:sorted.map(i=>i[0]), y:sorted.map(i=>i[1]/3600), type:'bar', name:'Horas' }},
+                    {{ x:sorted.map(i=>i[0]), y:cumPercent, type:'scatter', mode:'lines+markers', name:'Acumulado', yaxis:'y2' }}
+                ], {{ margin:{{l:50,r:50,t:20,b:150}}, showlegend:false, yaxis:{{title:'Horas de Parada'}}, yaxis2:{{title:'% Acumulado',overlaying:'y',side:'right',tickformat:'.0%',range:[0,1.05]}}, xaxis:{{tickangle:45}} }}, {{responsive:true}});
+            }}
+            function renderDowntimeRankChart(data) {{
+                const linhaSum = data.reduce((acc, curr) => {{ acc[curr.Linha] = (acc[curr.Linha] || 0) + curr.DowntimeSeconds; return acc; }}, {{}});
+                const sorted = Object.entries(linhaSum).sort((a,b)=>a[1]-b[1]);
+                Plotly.newPlot('downtime-rank-chart', [{{ x:sorted.map(i=>i[1]/3600), y:sorted.map(i=>i[0]), type:'bar', orientation:'h', marker:{{color:'#ff6f61'}} }}], {{ margin:{{l:150,r:20,t:20,b:50}}, xaxis:{{title:'Total Horas Parada'}}, yaxis:{{automargin:true}} }}, {{responsive:true}});
+            }}
+            linhaFilter.addEventListener('change', updateDashboard);
+            turnoFilter.addEventListener('change', updateDashboard);
+            document.addEventListener('DOMContentLoaded', updateDashboard);
+        </script>
+    </body>
+    </html>
+    """
+
+    with open("dashboard.html", "w", encoding="utf-8") as f:
+        f.write(html_template)
+    print("Arquivo dashboard.html gerado com sucesso na sua pasta local.")
+
+except FileNotFoundError:
+    print(f"Erro: Um dos arquivos não foi encontrado. Certifique-se que '{oee_file}' e '{downtime_file}' estão na mesma pasta que o script.")
+except Exception as e:
+    print(f"Ocorreu um erro inesperado: {e}")
+
+```
